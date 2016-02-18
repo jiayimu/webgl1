@@ -1,30 +1,4 @@
-// ProgramObject.js (c) 2012 matsuda and kanda
-// Vertex shader for single color drawing
-var SOLID_VSHADER_SOURCE =
-    'attribute vec4 a_Position;\n' +
-    'attribute vec4 a_Normal;\n' +
-    'uniform mat4 u_MvpMatrix;\n' +
-    'uniform mat4 u_NormalMatrix;\n' +
-    'varying vec4 v_Color;\n' +
-    'void main() {\n' +
-    '  vec3 lightDirection = vec3(0.0, 0.0, 1.0);\n' + // Light direction(World coordinate)
-    '  vec4 color = vec4(0.0, 1.0, 1.0, 1.0);\n' +     // Face color
-'  gl_Position = u_MvpMatrix * a_Position;\n' +
-'  vec3 normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
-'  float nDotL = max(dot(normal, lightDirection), 0.0);\n' +
-'  v_Color = vec4(color.rgb * nDotL, color.a);\n' +
-'}\n';
-
-// Fragment shader for single color drawing
-var SOLID_FSHADER_SOURCE =
-    '#ifdef GL_ES\n' +
-    'precision mediump float;\n' +
-    '#endif\n' +
-    'varying vec4 v_Color;\n' +
-    'void main() {\n' +
-    '  gl_FragColor = v_Color;\n' +
-    '}\n';
-
+// ProgramObject.js (c) 2016 jiayi
 // Vertex shader for texture drawing
 var TEXTURE_VSHADER_SOURCE =
     'attribute vec4 a_Position;\n' +
@@ -67,18 +41,11 @@ function main() {
     }
 
     // Initialize shaders
-    var solidProgram = createProgram(gl, SOLID_VSHADER_SOURCE, SOLID_FSHADER_SOURCE);
     var texProgram = createProgram(gl, TEXTURE_VSHADER_SOURCE, TEXTURE_FSHADER_SOURCE);
-    if (!solidProgram || !texProgram) {
+    if (!texProgram) {
         console.log('Failed to intialize shaders.');
         return;
     }
-
-    // Get storage locations of attribute and uniform variables in program object for single color drawing
-    solidProgram.a_Position = gl.getAttribLocation(solidProgram, 'a_Position');
-    solidProgram.a_Normal = gl.getAttribLocation(solidProgram, 'a_Normal');
-    solidProgram.u_MvpMatrix = gl.getUniformLocation(solidProgram, 'u_MvpMatrix');
-    solidProgram.u_NormalMatrix = gl.getUniformLocation(solidProgram, 'u_NormalMatrix');
 
     // Get storage locations of attribute and uniform variables in program object for texture drawing
     texProgram.a_Position = gl.getAttribLocation(texProgram, 'a_Position');
@@ -88,9 +55,7 @@ function main() {
     texProgram.u_NormalMatrix = gl.getUniformLocation(texProgram, 'u_NormalMatrix');
     texProgram.u_Sampler = gl.getUniformLocation(texProgram, 'u_Sampler');
 
-    if (solidProgram.a_Position < 0 || solidProgram.a_Normal < 0 ||
-        !solidProgram.u_MvpMatrix || !solidProgram.u_NormalMatrix ||
-        texProgram.a_Position < 0 || texProgram.a_Normal < 0 || texProgram.a_TexCoord < 0 ||
+    if (texProgram.a_Position < 0 || texProgram.a_Normal < 0 || texProgram.a_TexCoord < 0 ||
         !texProgram.u_MvpMatrix || !texProgram.u_NormalMatrix || !texProgram.u_Sampler) {
         console.log('Failed to get the storage location of attribute or uniform variable');
         return;
@@ -104,8 +69,10 @@ function main() {
     }
 
     // Set texture
-    var texture = initTextures(gl, texProgram);
-    if (!texture) {
+    //the last number display which cube is init
+    var texture1 = initTextures(gl, texProgram,1);
+    var texture2 = initTextures(gl, texProgram,2);
+    if (!texture1|| !texture2) {
         console.log('Failed to intialize the texture.');
         return;
     }
@@ -125,12 +92,10 @@ function main() {
         currentAngle = animate(currentAngle);  // Update current rotation angle
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear color and depth buffers
-        // Draw a cube in single color
-        drawSolidCube(gl, solidProgram, cube, -3.0, currentAngle, viewProjMatrix);
-        //drawTexCube(gl, texProgram, cube, texture, -3.0, currentAngle, viewProjMatrix);
         // Draw a cube with texture
-        //drawTexCube(gl, texProgram, cube, texture, 2.0, currentAngle, viewProjMatrix);
-        drawTexCube(gl, texProgram, cube, texture, 0.0, currentAngle, viewProjMatrix);
+        //the last number display which cube is init
+        drawTexCube(gl, texProgram, cube, texture2, -3.0, currentAngle, viewProjMatrix,2);
+        drawTexCube(gl, texProgram, cube, texture1, 0.0, currentAngle, viewProjMatrix,1);
         window.requestAnimationFrame(tick, canvas);
     };
     tick();
@@ -200,7 +165,7 @@ function initVertexBuffers(gl) {
     return o;
 }
 
-function initTextures(gl, program) {
+function initTextures(gl, program,cubeNumber) {
     var texture = gl.createTexture();   // Create a texture object
     if (!texture) {
         console.log('Failed to create the texture object');
@@ -229,23 +194,16 @@ function initTextures(gl, program) {
     };
 
     // Tell the browser to load an Image
-    image.src = '../resources/lava.jpg';
+    if(cubeNumber == 1){
+        image.src = '../resources/lava.jpg';
+    }else if(cubeNumber == 2){
+        image.src = '../resources/flower.jpg';
+    }
 
     return texture;
 }
 
-function drawSolidCube(gl, program, o, x, angle, viewProjMatrix) {
-    gl.useProgram(program);   // Tell that this program object is used
-
-    // Assign the buffer objects and enable the assignment
-    initAttributeVariable(gl, program.a_Position, o.vertexBuffer); // Vertex coordinates
-    initAttributeVariable(gl, program.a_Normal, o.normalBuffer);   // Normal
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, o.indexBuffer);  // Bind indices
-
-    drawCubeAround(gl, program, o, x, angle, viewProjMatrix);   // Draw
-}
-
-function drawTexCube(gl, program, o, texture, x, angle, viewProjMatrix) {
+function drawTexCube(gl, program, o, texture, x, angle, viewProjMatrix,cubeNumber) {
     gl.useProgram(program);   // Tell that this program object is used
 
     // Assign the buffer objects and enable the assignment
@@ -258,7 +216,11 @@ function drawTexCube(gl, program, o, texture, x, angle, viewProjMatrix) {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
-    drawCube(gl, program, o, x, angle, viewProjMatrix); // Draw
+    if(cubeNumber == 1) {
+        drawCube(gl, program, o, x, angle, viewProjMatrix); // Draw
+    }else if(cubeNumber == 2){
+        drawCubeAround(gl, program, o, x, angle, viewProjMatrix);   // Draw
+    }
 }
 
 // Assign the buffer objects and enable the assignment
