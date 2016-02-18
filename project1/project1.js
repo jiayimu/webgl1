@@ -6,13 +6,13 @@ var TEXTURE_VSHADER_SOURCE =
     'attribute vec2 a_TexCoord;\n' +
     'uniform mat4 u_MvpMatrix;\n' +
     'uniform mat4 u_NormalMatrix;\n' +
+    'uniform vec3 u_LightDirection;\n' +
     'varying float v_NdotL;\n' +
     'varying vec2 v_TexCoord;\n' +
     'void main() {\n' +
-    '  vec3 lightDirection = vec3(0.0, 0.0, 1.0);\n' + // Light direction(World coordinate)
     '  gl_Position = u_MvpMatrix * a_Position;\n' +
     '  vec3 normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
-    '  v_NdotL = max(dot(normal, lightDirection), 0.0);\n' +
+    '  v_NdotL = max(dot(normal, u_LightDirection), 0.0);\n' +
     '  v_TexCoord = a_TexCoord;\n' +
     '}\n';
 
@@ -53,10 +53,12 @@ function main() {
     texProgram.a_TexCoord = gl.getAttribLocation(texProgram, 'a_TexCoord');
     texProgram.u_MvpMatrix = gl.getUniformLocation(texProgram, 'u_MvpMatrix');
     texProgram.u_NormalMatrix = gl.getUniformLocation(texProgram, 'u_NormalMatrix');
+    texProgram.u_LightDirection = gl.getUniformLocation(texProgram, 'u_LightDirection');
     texProgram.u_Sampler = gl.getUniformLocation(texProgram, 'u_Sampler');
 
     if (texProgram.a_Position < 0 || texProgram.a_Normal < 0 || texProgram.a_TexCoord < 0 ||
-        !texProgram.u_MvpMatrix || !texProgram.u_NormalMatrix || !texProgram.u_Sampler) {
+        !texProgram.u_MvpMatrix || !texProgram.u_NormalMatrix || !texProgram.u_Sampler ||
+        !texProgram.u_LightDirection) {
         console.log('Failed to get the storage location of attribute or uniform variable');
         return;
     }
@@ -251,6 +253,11 @@ function drawCube(gl, program, o, x, angle, viewProjMatrix) {
     g_mvpMatrix.multiply(g_modelMatrix);
     gl.uniformMatrix4fv(program.u_MvpMatrix, false, g_mvpMatrix.elements);
 
+    // Set the light direction (in the world coordinate)
+    var lightDirection = new Vector3([0.5, 3.0, 4.0]);
+    lightDirection.normalize();     // Normalize
+    gl.uniform3fv(program.u_LightDirection, lightDirection.elements);
+
     gl.drawElements(gl.TRIANGLES, o.numIndices, o.indexBuffer.type, 0);   // Draw
 }
 
@@ -280,6 +287,11 @@ function drawCubeAround(gl, program, o, x, angle, viewProjMatrix) {
     g_mvpMatrix.set(viewProjMatrix);
     g_mvpMatrix.multiply(g_modelMatrix);
     gl.uniformMatrix4fv(program.u_MvpMatrix, false, g_mvpMatrix.elements);
+
+    // Set the light direction (in the world coordinate)
+    var lightDirection = new Vector3([0.0, 0.0, 4.0]);
+    lightDirection.normalize();     // Normalize
+    gl.uniform3fv(program.u_LightDirection, lightDirection.elements);
 
     gl.drawElements(gl.TRIANGLES, o.numIndices, o.indexBuffer.type, 0);   // Draw
 }
