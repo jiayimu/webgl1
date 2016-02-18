@@ -12,5 +12,5 @@ In lib folder:
 
 In resources folder:
   includes some images as resource.
-Hints: texture image size must be 2-to-power-of-n. For example: 512*512, 256*256...
+Hints: texture image size must be 2-to-power-of-n. For example: 512 * 512, 256 * 256...
   
